@@ -1,0 +1,9 @@
+{
+  "name": "ai-farm-os",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix apps/web run build",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "bash scripts/start-api.sh"
+  }
+}
