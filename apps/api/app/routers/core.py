@@ -66,7 +66,7 @@ def dashboard(db: Session = Depends(get_db)) -> dict:
     overdue = [t for t in open_tasks if t.due_at and t.due_at < "2026-09-13 09:00"]
     high_risk = [z for z in zones if z.risk_level == "high"]
     harvestable = [p for p in plants if p.growth_stage == "采收期"]
-    need_water = [c for c in circuits if c.status == "needs_action" or (c.recommendation_mm or 0) >= 12]
+    need_water = [c for c in circuits if c.status == "needs_action"]
     sim_devices = [d for d in devices if d.data_source == DataSource.SIMULATION.value]
     unbound = [d for d in devices if d.status == "unbound"]
 

@@ -57,7 +57,7 @@ export function IrrigationPage() {
                   </div>
                 </td>
                 <td>
-                  {item.recommendation_mm ? (
+                  {item.recommendation_mm && item.status !== "accepted" ? (
                     <button className="btn" onClick={() => void accept(item.id)}>
                       采纳为任务
                     </button>

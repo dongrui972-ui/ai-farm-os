@@ -34,7 +34,15 @@ export function RobotsPage() {
                 onClick={() =>
                   api
                     .robotCommand(robot.id, "goto")
-                    .catch((err: unknown) => setReject(err instanceof Error ? err.message : "已拒绝"))
+                    .catch((err: unknown) => {
+                      const raw = err instanceof Error ? err.message : "已拒绝";
+                      try {
+                        const parsed = JSON.parse(raw) as { detail?: { message?: string } };
+                        setReject(parsed.detail?.message ?? raw);
+                      } catch {
+                        setReject(raw);
+                      }
+                    })
                 }
               >
                 尝试下发行走（应被拒绝）
