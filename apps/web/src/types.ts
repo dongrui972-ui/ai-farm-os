@@ -1,4 +1,10 @@
 export type DataSource = "REAL" | "SIMULATION" | "MANUAL";
+export type TwinLayerKey = "moisture" | "crop" | "risk" | "device" | "sensors";
+export type RiskLevel = "low" | "medium" | "high";
+export type TaskStatus = "todo" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "low" | "normal" | "high" | "urgent";
+export type DecisionUrgency = "urgent" | "high" | "normal";
+export type ZoneType = "greenhouse" | "open_field" | "water" | "facility";
 
 export type Farm = {
   id: string;
@@ -27,13 +33,13 @@ export type Meta = {
   farm: Farm | null;
   season: Season | null;
   data_policy: { allowed_sources: DataSource[]; rule: string };
-  layers: string[];
+  layers: TwinLayerKey[];
 };
 
 export type Decision = {
   id: string;
   kind: string;
-  urgency: string;
+  urgency: DecisionUrgency;
   title: string;
   detail: string;
   zone_id: string | null;
@@ -52,7 +58,7 @@ export type Dashboard = {
     id: string;
     code: string;
     name: string;
-    risk_level: string;
+    risk_level: RiskLevel;
     risk_note: string;
     moisture_pct: number | null;
     data_source: DataSource;
@@ -65,10 +71,10 @@ export type TwinZone = {
   id: string;
   code: string;
   name: string;
-  zone_type: string;
+  zone_type: ZoneType;
   polygon: { x: number; y: number }[];
   moisture_pct: number | null;
-  risk_level: string;
+  risk_level: RiskLevel;
   risk_note: string;
   crop_name: string | null;
   variety: string | null;
@@ -91,8 +97,8 @@ export type TwinDevice = {
 };
 
 export type TwinPayload = {
-  layers: string[];
-  available_layers: { id: string; label: string; data_source: DataSource }[];
+  layers: TwinLayerKey[];
+  available_layers: { id: TwinLayerKey; label: string; data_source: DataSource }[];
   zones: TwinZone[];
   devices?: TwinDevice[];
   disclaimer: string;
@@ -125,7 +131,7 @@ export type PlantItem = {
   data_source: DataSource;
   zone_code?: string | null;
   moisture_pct?: number | null;
-  risk_level?: string | null;
+  risk_level?: RiskLevel | null;
 };
 
 export type IrrigationItem = {
@@ -154,8 +160,8 @@ export type TaskItem = {
   task_type: string;
   zone_id: string | null;
   assignee: string;
-  priority: string;
-  status: string;
+  priority: TaskPriority;
+  status: TaskStatus;
   due_at: string | null;
   origin: string;
   notes: string;
@@ -221,7 +227,7 @@ export type DiagnosisItem = {
   symptom: string;
   conclusion: string;
   confidence: number;
-  severity: string;
+  severity: RiskLevel;
   created_at: string;
   data_source: DataSource;
   zone_code?: string | null;
@@ -307,10 +313,60 @@ export type Architecture = {
   modules: Record<string, string[]>;
   boundaries: string[];
   data_sources: DataSource[];
+  generated_at: string;
 };
 
 export type Workbench = {
   title: string;
   focus_date: string;
   blocks: { id: string; title: string; items: Record<string, unknown>[] }[];
+};
+
+export type TaskCreateInput = {
+  title: string;
+  task_type?: string;
+  zone_id?: string | null;
+  assignee?: string;
+  priority?: TaskPriority;
+  due_at?: string | null;
+  notes?: string;
+  origin?: string;
+  data_source?: DataSource;
+};
+
+export type TaskPatchInput = {
+  status?: TaskStatus;
+  assignee?: string;
+  notes?: string;
+  priority?: TaskPriority;
+};
+
+export type DiagnosisCreateInput = {
+  zone_id?: string | null;
+  plant_id?: string | null;
+  title: string;
+  symptom: string;
+  conclusion?: string;
+  confidence?: number;
+  severity?: RiskLevel;
+  data_source?: DataSource;
+};
+
+export type AIJobCreateInput = {
+  title: string;
+  job_type?: string;
+  input_summary?: string;
+};
+
+export type NoteCreateInput = {
+  author: string;
+  role?: string;
+  title: string;
+  body: string;
+  related_module?: string;
+};
+
+export type RobotCommandInput = {
+  command: string;
+  args?: Record<string, unknown>;
 };

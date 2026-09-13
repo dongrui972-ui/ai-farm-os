@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "npm --prefix apps/web run build",
+    "smoke:api": "python3 apps/api/smoke_routes.py",
     "dev:web": "npm --prefix apps/web run dev",
     "dev:api": "bash scripts/start-api.sh"
   }
