@@ -1,4 +1,5 @@
 import type {
+  AIJobCreateInput,
   AgentItem,
   AgentRun,
   AIJobItem,
@@ -6,78 +7,74 @@ import type {
   AssetItem,
   Dashboard,
   DeviceItem,
+  DiagnosisCreateInput,
   DiagnosisItem,
   FleetItem,
   IrrigationItem,
   LotItem,
   Meta,
+  NoteCreateInput,
   NoteItem,
   PlantItem,
+  RobotCommandInput,
   RobotItem,
   Season,
+  TaskCreateInput,
   TaskItem,
+  TaskPatchInput,
   TwinPayload,
   VendorItem,
   Workbench,
 } from "./types";
+import { ApiClient } from "./api/client";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    ...init,
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || res.statusText);
-  }
-  return (await res.json()) as T;
-}
+const client = new ApiClient("/api");
 
 export const api = {
-  meta: () => request<Meta>("/api/meta"),
-  dashboard: () => request<Dashboard>("/api/dashboard"),
+  meta: () => client.request<Meta>("/meta"),
+  dashboard: () => client.request<Dashboard>("/dashboard"),
   twin: (layers?: string[]) =>
-    request<TwinPayload>(`/api/twin${layers?.length ? `?layers=${layers.join(",")}` : ""}`),
-  assets: () => request<AssetItem[]>("/api/assets"),
-  plants: () => request<PlantItem[]>("/api/plants"),
-  irrigation: () => request<IrrigationItem[]>("/api/irrigation"),
+    client.request<TwinPayload>(
+      client.pathWithQuery("/twin", {
+        layers: layers?.length ? layers.join(",") : undefined,
+      }),
+    ),
+  assets: () => client.request<AssetItem[]>("/assets"),
+  plants: () => client.request<PlantItem[]>("/plants"),
+  irrigation: () => client.request<IrrigationItem[]>("/irrigation"),
   acceptIrrigation: (id: string) =>
-    request<{ task: TaskItem; note: string }>(`/api/irrigation/${id}/accept-recommendation`, {
+    client.request<{ task: TaskItem; note: string }>(`/irrigation/${id}/accept-recommendation`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: {},
     }),
-  tasks: () => request<TaskItem[]>("/api/tasks"),
-  createTask: (body: Partial<TaskItem> & { title: string }) =>
-    request<TaskItem>("/api/tasks", { method: "POST", body: JSON.stringify(body) }),
-  patchTask: (id: string, body: Partial<TaskItem>) =>
-    request<TaskItem>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  devices: () => request<DeviceItem[]>("/api/devices"),
-  device: (id: string) => request<DeviceItem>(`/api/devices/${id}`),
-  agents: () => request<AgentItem[]>("/api/agents"),
-  agent: (id: string) => request<AgentItem>(`/api/agents/${id}`),
-  runAgent: (id: string) => request<AgentRun>(`/api/agents/${id}/run`, { method: "POST", body: "{}" }),
-  diagnoses: () => request<DiagnosisItem[]>("/api/diagnoses"),
-  createDiagnosis: (body: Partial<DiagnosisItem> & { title: string; symptom: string }) =>
-    request<DiagnosisItem>("/api/diagnoses", { method: "POST", body: JSON.stringify(body) }),
-  jobs: () => request<AIJobItem[]>("/api/ai-center/jobs"),
-  createJob: (title: string) =>
-    request<AIJobItem>("/api/ai-center/jobs", {
+  tasks: () => client.request<TaskItem[]>("/tasks"),
+  createTask: (body: TaskCreateInput) => client.request<TaskItem>("/tasks", { method: "POST", body }),
+  patchTask: (id: string, body: TaskPatchInput) => client.request<TaskItem>(`/tasks/${id}`, { method: "PATCH", body }),
+  devices: () => client.request<DeviceItem[]>("/devices"),
+  device: (id: string) => client.request<DeviceItem>(`/devices/${id}`),
+  agents: () => client.request<AgentItem[]>("/agents"),
+  agent: (id: string) => client.request<AgentItem>(`/agents/${id}`),
+  runAgent: (id: string) => client.request<AgentRun>(`/agents/${id}/run`, { method: "POST", body: {} }),
+  diagnoses: () => client.request<DiagnosisItem[]>("/diagnoses"),
+  createDiagnosis: (body: DiagnosisCreateInput) => client.request<DiagnosisItem>("/diagnoses", { method: "POST", body }),
+  jobs: () => client.request<AIJobItem[]>("/ai-center/jobs"),
+  createJob: (body: AIJobCreateInput) =>
+    client.request<AIJobItem>("/ai-center/jobs", {
       method: "POST",
-      body: JSON.stringify({ title, job_type: "briefing" }),
+      body,
     }),
-  robots: () => request<RobotItem[]>("/api/robots"),
-  robotCommand: (id: string, command: string) =>
-    request<unknown>(`/api/robots/${id}/command`, {
+  robots: () => client.request<RobotItem[]>("/robots"),
+  robotCommand: (id: string, body: RobotCommandInput) =>
+    client.request<unknown>(`/robots/${id}/command`, {
       method: "POST",
-      body: JSON.stringify({ command }),
+      body,
     }),
-  fleet: () => request<FleetItem[]>("/api/fleet"),
-  postharvest: () => request<LotItem[]>("/api/postharvest"),
-  vendors: () => request<VendorItem[]>("/api/vendors"),
-  collaboration: () => request<NoteItem[]>("/api/collaboration"),
-  createNote: (body: Pick<NoteItem, "author" | "role" | "title" | "body" | "related_module">) =>
-    request<NoteItem>("/api/collaboration", { method: "POST", body: JSON.stringify(body) }),
-  architecture: () => request<Architecture>("/api/architecture"),
-  workbench: () => request<Workbench>("/api/workbench"),
-  seasons: () => request<Season[]>("/api/seasons"),
+  fleet: () => client.request<FleetItem[]>("/fleet"),
+  postharvest: () => client.request<LotItem[]>("/postharvest"),
+  vendors: () => client.request<VendorItem[]>("/vendors"),
+  collaboration: () => client.request<NoteItem[]>("/collaboration"),
+  createNote: (body: NoteCreateInput) => client.request<NoteItem>("/collaboration", { method: "POST", body }),
+  architecture: () => client.request<Architecture>("/architecture"),
+  workbench: () => client.request<Workbench>("/workbench"),
+  seasons: () => client.request<Season[]>("/seasons"),
 };

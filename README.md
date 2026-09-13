@@ -37,6 +37,7 @@ export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/farm"
 
 ```bash
 python3 -m compileall apps/api/app
+npm run smoke:api
 npm --prefix apps/web install
 npm run build
 ```

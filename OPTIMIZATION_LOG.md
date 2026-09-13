@@ -33,3 +33,31 @@
 - 无登录鉴权（演示 OS）。
 - 仿真读数为种子回放，不会随墙钟自动增长。
 - 前端地图为 SVG 示意，未接 GIS。
+
+## 2026-09 Refactor & Hardening 记录
+
+### 分层重构
+
+- 路由拆薄：`routers/*` 仅保留 HTTP 层职责。
+- 新增 `services/*`：把看板聚合、台账写入、智能体重跑、stub 拒绝逻辑下沉到服务层。
+- 新增 `schemas/*`：创建/更新类接口统一请求模型，避免在路由里散落内联 BaseModel。
+
+### 共享类型与去重
+
+- 引入共享请求类型：`DataSourceLiteral`、任务状态/优先级、风险等级。
+- 提取 `DATA_SOURCE_LEGEND`、`HONESTY_BOUNDARIES`、孪生图层定义为常量，消除重复硬编码。
+- Seed 数据增加 `_season / _zone / _task / _robot` 构造器，减少重复样板并明确 demo 语义。
+
+### 前端结构优化
+
+- 路由与侧栏统一注册表（`appRoutes.ts`），避免导航配置与 `<Route>` 重复维护。
+- API 调用统一 `ApiClient`，写操作输入从 `Partial<T>` 改为显式 DTO 类型，防止误传字段。
+- 新增 `DataPageState`，统一加载与错误呈现，减少页面重复样板。
+
+### 冒烟与可信边界
+
+- 新增 `apps/api/smoke_routes.py` 覆盖 P0–P3 关键 GET/POST/PATCH。
+- 冒烟脚本强制校验：
+  - `/api/robots/{id}/command` 必须 409（拒绝伪控制）
+  - `/api/irrigation/{id}/accept-recommendation` 仅创建任务，不下发阀控
+  - 关键对象 `data_source` 仅允许 `REAL|SIMULATION|MANUAL`
