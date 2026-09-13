@@ -33,6 +33,35 @@ def _poly(*points: tuple[float, float]) -> str:
     return json.dumps([{"x": x, "y": y} for x, y in points])
 
 
+def _season(id, name, year, start_date, end_date, status, notes, data_source) -> Season:
+    return Season(
+        id=id,
+        name=name,
+        year=year,
+        start_date=start_date,
+        end_date=end_date,
+        status=status,
+        notes=notes,
+        data_source=data_source,
+    )
+
+
+def _zone(id, farm_id, code, name, zone_type, area_mu, polygon, moisture_pct, risk_level, risk_note, data_source) -> Zone:
+    return Zone(
+        id=id,
+        farm_id=farm_id,
+        code=code,
+        name=name,
+        zone_type=zone_type,
+        area_mu=area_mu,
+        polygon=polygon,
+        moisture_pct=moisture_pct,
+        risk_level=risk_level,
+        risk_note=risk_note,
+        data_source=data_source,
+    )
+
+
 def _asset(id, zone_id, name, asset_type, status, commissioned_at, notes, data_source) -> Asset:
     return Asset(
         id=id,
@@ -80,6 +109,22 @@ def _irr(
         used_m3=used_m3,
         recommendation=recommendation,
         recommendation_mm=recommendation_mm,
+        data_source=data_source,
+    )
+
+
+def _task(id, title, task_type, zone_id, assignee, priority, status, due_at, origin, notes, data_source) -> Task:
+    return Task(
+        id=id,
+        title=title,
+        task_type=task_type,
+        zone_id=zone_id,
+        assignee=assignee,
+        priority=priority,
+        status=status,
+        due_at=due_at,
+        origin=origin,
+        notes=notes,
         data_source=data_source,
     )
 
@@ -158,6 +203,19 @@ def _job(id, title, job_type, status, input_summary, output_summary, created_at,
     )
 
 
+def _robot(id, name, robot_type, status, capability_boundary, last_pose, control_enabled, data_source) -> Robot:
+    return Robot(
+        id=id,
+        name=name,
+        robot_type=robot_type,
+        status=status,
+        capability_boundary=capability_boundary,
+        last_pose=last_pose,
+        control_enabled=control_enabled,
+        data_source=data_source,
+    )
+
+
 def _veh(id, name, vehicle_type, status, operator, last_service, last_known_place, notes, data_source) -> FleetVehicle:
     return FleetVehicle(
         id=id,
@@ -222,12 +280,13 @@ def seed_if_empty(db: Session) -> bool:
 
 def seed_demo(db: Session) -> None:
     now = datetime(2026, 9, 13, 8, 30, 0)
+    farm_id = "farm-huairou"
     sim = DataSource.SIMULATION.value
     manual = DataSource.MANUAL.value
 
     db.add(
         Farm(
-            id="farm-huairou",
+            id=farm_id,
             name="一级芯界怀柔示范农场",
             location="北京市怀柔区桥梓镇",
             operator="一级芯界农业科技",
@@ -238,232 +297,28 @@ def seed_demo(db: Session) -> None:
     )
 
     seasons = [
-        Season(
-            id="season-2025-spring",
-            name="2025 春茬",
-            year=2025,
-            start_date="2025-02-20",
-            end_date="2025-06-30",
-            status="closed",
-            notes="番茄/黄瓜春茬已归档，产量记录来自人工台账。",
-            data_source=manual,
-        ),
-        Season(
-            id="season-2025-autumn",
-            name="2025 秋茬",
-            year=2025,
-            start_date="2025-08-01",
-            end_date="2025-12-15",
-            status="closed",
-            notes="秋延后番茄与生菜，冷库周转正常。",
-            data_source=manual,
-        ),
-        Season(
-            id="season-2026-spring",
-            name="2026 春茬",
-            year=2026,
-            start_date="2026-02-18",
-            end_date="2026-06-28",
-            status="closed",
-            notes="春茬已结束，部分设施转入秋茬换茬。",
-            data_source=manual,
-        ),
-        Season(
-            id="season-2026-autumn",
-            name="2026 秋茬",
-            year=2026,
-            start_date="2026-08-05",
-            end_date="2026-12-20",
-            status="active",
-            notes="当前生产季。A3 墒情偏低，A5 叶部风险升高，B2 生菜接近采收窗口。",
-            data_source=manual,
-        ),
+        _season("season-2025-spring", "2025 春茬", 2025, "2025-02-20", "2025-06-30", "closed", "番茄/黄瓜春茬已归档，产量记录来自人工台账。", manual),
+        _season("season-2025-autumn", "2025 秋茬", 2025, "2025-08-01", "2025-12-15", "closed", "秋延后番茄与生菜，冷库周转正常。", manual),
+        _season("season-2026-spring", "2026 春茬", 2026, "2026-02-18", "2026-06-28", "closed", "春茬已结束，部分设施转入秋茬换茬。", manual),
+        _season("season-2026-autumn", "2026 秋茬", 2026, "2026-08-05", "2026-12-20", "active", "当前生产季。A3 墒情偏低，A5 叶部风险升高，B2 生菜接近采收窗口。", manual),
     ]
     db.add_all(seasons)
 
     zones = [
-        Zone(
-            id="zone-a1",
-            farm_id="farm-huairou",
-            code="A1",
-            name="A1 日光温室 · 樱桃番茄",
-            zone_type="greenhouse",
-            area_mu=4.2,
-            polygon=_poly((40, 80), (220, 80), (220, 180), (40, 180)),
-            moisture_pct=62,
-            risk_level="low",
-            risk_note="长势均匀，暂无病征。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-a2",
-            farm_id="farm-huairou",
-            code="A2",
-            name="A2 日光温室 · 黄瓜盛果",
-            zone_type="greenhouse",
-            area_mu=4.0,
-            polygon=_poly((240, 80), (420, 80), (420, 180), (240, 180)),
-            moisture_pct=58,
-            risk_level="medium",
-            risk_note="棚湿偏高，注意通风降湿。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-a3",
-            farm_id="farm-huairou",
-            code="A3",
-            name="A3 日光温室 · 硬粉番茄",
-            zone_type="greenhouse",
-            area_mu=4.1,
-            polygon=_poly((40, 200), (220, 200), (220, 300), (40, 300)),
-            moisture_pct=41,
-            risk_level="high",
-            risk_note="0–20cm 墒情跌破阈值，今日需补灌。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-a4",
-            farm_id="farm-huairou",
-            code="A4",
-            name="A4 日光温室 · 彩椒膨果",
-            zone_type="greenhouse",
-            area_mu=3.8,
-            polygon=_poly((240, 200), (420, 200), (420, 300), (240, 300)),
-            moisture_pct=55,
-            risk_level="low",
-            risk_note="膨果期水肥节奏正常。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-a5",
-            farm_id="farm-huairou",
-            code="A5",
-            name="A5 日光温室 · 黄瓜",
-            zone_type="greenhouse",
-            area_mu=4.0,
-            polygon=_poly((40, 320), (220, 320), (220, 420), (40, 420)),
-            moisture_pct=64,
-            risk_level="high",
-            risk_note="中部叶片疑似叶霉，仿真诊断置信度 0.74。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-a6",
-            farm_id="farm-huairou",
-            code="A6",
-            name="A6 日光温室 · 草莓育苗",
-            zone_type="greenhouse",
-            area_mu=3.6,
-            polygon=_poly((240, 320), (420, 320), (420, 420), (240, 420)),
-            moisture_pct=68,
-            risk_level="low",
-            risk_note="匍匐茎繁苗，基质湿度充足。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-b1",
-            farm_id="farm-huairou",
-            code="B1",
-            name="B1 露地 · 散叶生菜",
-            zone_type="open_field",
-            area_mu=8.5,
-            polygon=_poly((500, 80), (680, 80), (680, 200), (500, 200)),
-            moisture_pct=52,
-            risk_level="low",
-            risk_note="可分批采收。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-b2",
-            farm_id="farm-huairou",
-            code="B2",
-            name="B2 露地 · 奶油生菜",
-            zone_type="open_field",
-            area_mu=7.8,
-            polygon=_poly((700, 80), (880, 80), (880, 200), (700, 200)),
-            moisture_pct=48,
-            risk_level="medium",
-            risk_note="叶球紧实，建议明日清晨采收。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-b3",
-            farm_id="farm-huairou",
-            code="B3",
-            name="B3 露地 · 菠菜",
-            zone_type="open_field",
-            area_mu=6.4,
-            polygon=_poly((500, 220), (680, 220), (680, 340), (500, 340)),
-            moisture_pct=50,
-            risk_level="low",
-            risk_note="出苗整齐。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-b4",
-            farm_id="farm-huairou",
-            code="B4",
-            name="B4 露地 · 鲜食玉米",
-            zone_type="open_field",
-            area_mu=12.0,
-            polygon=_poly((700, 220), (880, 220), (880, 340), (700, 340)),
-            moisture_pct=46,
-            risk_level="low",
-            risk_note="灌浆期，按需补水即可。",
-            data_source=sim,
-        ),
-        Zone(
-            id="zone-w1",
-            farm_id="farm-huairou",
-            code="W1",
-            name="W1 蓄水池",
-            zone_type="water",
-            area_mu=2.1,
-            polygon=_poly((500, 380), (640, 380), (640, 500), (500, 500)),
-            moisture_pct=None,
-            risk_level="low",
-            risk_note="水位人工抄表，非在线液位计。",
-            data_source=manual,
-        ),
-        Zone(
-            id="zone-f1",
-            farm_id="farm-huairou",
-            code="F1",
-            name="F1 泵房 / 阀井",
-            zone_type="facility",
-            area_mu=0.4,
-            polygon=_poly((660, 400), (740, 400), (740, 460), (660, 460)),
-            moisture_pct=None,
-            risk_level="low",
-            risk_note="电磁阀未做远程闭环，仅台账与仿真建议。",
-            data_source=manual,
-        ),
-        Zone(
-            id="zone-p1",
-            farm_id="farm-huairou",
-            code="P1",
-            name="P1 包装分拣间",
-            zone_type="facility",
-            area_mu=1.2,
-            polygon=_poly((760, 380), (880, 380), (880, 500), (760, 500)),
-            moisture_pct=None,
-            risk_level="low",
-            risk_note="人工分拣线。",
-            data_source=manual,
-        ),
-        Zone(
-            id="zone-c1",
-            farm_id="farm-huairou",
-            code="C1",
-            name="C1 预冷冷库",
-            zone_type="facility",
-            area_mu=0.8,
-            polygon=_poly((760, 520), (880, 520), (880, 600), (760, 600)),
-            moisture_pct=None,
-            risk_level="low",
-            risk_note="库温由值班员每两小时抄表。",
-            data_source=manual,
-        ),
+        _zone("zone-a1", farm_id, "A1", "A1 日光温室 · 樱桃番茄", "greenhouse", 4.2, _poly((40, 80), (220, 80), (220, 180), (40, 180)), 62, "low", "长势均匀，暂无病征。", sim),
+        _zone("zone-a2", farm_id, "A2", "A2 日光温室 · 黄瓜盛果", "greenhouse", 4.0, _poly((240, 80), (420, 80), (420, 180), (240, 180)), 58, "medium", "棚湿偏高，注意通风降湿。", sim),
+        _zone("zone-a3", farm_id, "A3", "A3 日光温室 · 硬粉番茄", "greenhouse", 4.1, _poly((40, 200), (220, 200), (220, 300), (40, 300)), 41, "high", "0–20cm 墒情跌破阈值，今日需补灌。", sim),
+        _zone("zone-a4", farm_id, "A4", "A4 日光温室 · 彩椒膨果", "greenhouse", 3.8, _poly((240, 200), (420, 200), (420, 300), (240, 300)), 55, "low", "膨果期水肥节奏正常。", sim),
+        _zone("zone-a5", farm_id, "A5", "A5 日光温室 · 黄瓜", "greenhouse", 4.0, _poly((40, 320), (220, 320), (220, 420), (40, 420)), 64, "high", "中部叶片疑似叶霉，仿真诊断置信度 0.74。", sim),
+        _zone("zone-a6", farm_id, "A6", "A6 日光温室 · 草莓育苗", "greenhouse", 3.6, _poly((240, 320), (420, 320), (420, 420), (240, 420)), 68, "low", "匍匐茎繁苗，基质湿度充足。", sim),
+        _zone("zone-b1", farm_id, "B1", "B1 露地 · 散叶生菜", "open_field", 8.5, _poly((500, 80), (680, 80), (680, 200), (500, 200)), 52, "low", "可分批采收。", sim),
+        _zone("zone-b2", farm_id, "B2", "B2 露地 · 奶油生菜", "open_field", 7.8, _poly((700, 80), (880, 80), (880, 200), (700, 200)), 48, "medium", "叶球紧实，建议明日清晨采收。", sim),
+        _zone("zone-b3", farm_id, "B3", "B3 露地 · 菠菜", "open_field", 6.4, _poly((500, 220), (680, 220), (680, 340), (500, 340)), 50, "low", "出苗整齐。", sim),
+        _zone("zone-b4", farm_id, "B4", "B4 露地 · 鲜食玉米", "open_field", 12.0, _poly((700, 220), (880, 220), (880, 340), (700, 340)), 46, "low", "灌浆期，按需补水即可。", sim),
+        _zone("zone-w1", farm_id, "W1", "W1 蓄水池", "water", 2.1, _poly((500, 380), (640, 380), (640, 500), (500, 500)), None, "low", "水位人工抄表，非在线液位计。", manual),
+        _zone("zone-f1", farm_id, "F1", "F1 泵房 / 阀井", "facility", 0.4, _poly((660, 400), (740, 400), (740, 460), (660, 460)), None, "low", "电磁阀未做远程闭环，仅台账与仿真建议。", manual),
+        _zone("zone-p1", farm_id, "P1", "P1 包装分拣间", "facility", 1.2, _poly((760, 380), (880, 380), (880, 500), (760, 500)), None, "low", "人工分拣线。", manual),
+        _zone("zone-c1", farm_id, "C1", "C1 预冷冷库", "facility", 0.8, _poly((760, 520), (880, 520), (880, 600), (760, 600)), None, "low", "库温由值班员每两小时抄表。", manual),
     ]
     db.add_all(zones)
 
@@ -511,97 +366,13 @@ def seed_demo(db: Session) -> None:
     db.add_all(circuits)
 
     tasks = [
-        Task(
-            id="task-irr-a3",
-            title="A3 硬粉番茄补灌 12mm",
-            task_type="irrigation",
-            zone_id="zone-a3",
-            assignee="张永强",
-            priority="urgent",
-            status="todo",
-            due_at="2026-09-13 16:00",
-            origin="ai_suggested",
-            notes="来自灌溉顾问仿真建议，需现场确认阀门与水压后再执行。",
-            data_source=sim,
-        ),
-        Task(
-            id="task-scout-a5",
-            title="A5 黄瓜叶霉人工复核",
-            task_type="scouting",
-            zone_id="zone-a5",
-            assignee="李敏",
-            priority="high",
-            status="in_progress",
-            due_at="2026-09-13 12:00",
-            origin="ai_suggested",
-            notes="仿真诊断不可替代田间镜检。",
-            data_source=sim,
-        ),
-        Task(
-            id="task-harvest-b2",
-            title="B2 奶油生菜清晨采收",
-            task_type="harvest",
-            zone_id="zone-b2",
-            assignee="王秀兰",
-            priority="high",
-            status="todo",
-            due_at="2026-09-14 06:30",
-            origin="manual",
-            notes="对接商超订单 1.2 吨。",
-            data_source=manual,
-        ),
-        Task(
-            id="task-vent-a2",
-            title="A2 午前通风排湿",
-            task_type="climate",
-            zone_id="zone-a2",
-            assignee="张永强",
-            priority="normal",
-            status="todo",
-            due_at="2026-09-13 10:30",
-            origin="manual",
-            notes="",
-            data_source=manual,
-        ),
-        Task(
-            id="task-overdue-film",
-            title="A3 东侧窗密封修补",
-            task_type="maintenance",
-            zone_id="zone-a3",
-            assignee="赵师傅",
-            priority="normal",
-            status="todo",
-            due_at="2026-09-11 17:00",
-            origin="manual",
-            notes="已逾期，刮风天漏风。",
-            data_source=manual,
-        ),
-        Task(
-            id="task-fert-a4",
-            title="A4 彩椒膨果肥",
-            task_type="fertigation",
-            zone_id="zone-a4",
-            assignee="李敏",
-            priority="normal",
-            status="done",
-            due_at="2026-09-12 07:00",
-            origin="manual",
-            notes="已按配方随水冲施。",
-            data_source=manual,
-        ),
-        Task(
-            id="task-cool-check",
-            title="冷库抄表与预冷位核对",
-            task_type="postharvest",
-            zone_id="zone-c1",
-            assignee="值班",
-            priority="normal",
-            status="todo",
-            due_at="2026-09-13 18:00",
-            origin="manual",
-            notes="",
-            data_source=manual,
-        ),
+        _task("task-irr-a3", "A3 硬粉番茄补灌 12mm", "irrigation", "zone-a3", "张永强", "urgent", "todo", "2026-09-13 16:00", "ai_suggested", "来自灌溉顾问仿真建议，需现场确认阀门与水压后再执行。", sim),
+        _task("task-scout-a5", "A5 黄瓜叶霉人工复核", "scouting", "zone-a5", "李敏", "high", "in_progress", "2026-09-13 12:00", "ai_suggested", "仿真诊断不可替代田间镜检。", sim),
+        _task("task-harvest-b2", "B2 奶油生菜清晨采收", "harvest", "zone-b2", "王秀兰", "high", "todo", "2026-09-14 06:30", "manual", "对接商超订单 1.2 吨。", manual),
+        _task("task-vent-a2", "A2 午前通风排湿", "climate", "zone-a2", "张永强", "normal", "todo", "2026-09-13 10:30", "manual", "", manual),
+        _task("task-overdue-film", "A3 东侧窗密封修补", "maintenance", "zone-a3", "赵师傅", "normal", "todo", "2026-09-11 17:00", "manual", "已逾期，刮风天漏风。", manual),
+        _task("task-fert-a4", "A4 彩椒膨果肥", "fertigation", "zone-a4", "李敏", "normal", "done", "2026-09-12 07:00", "manual", "已按配方随水冲施。", manual),
+        _task("task-cool-check", "冷库抄表与预冷位核对", "postharvest", "zone-c1", "值班", "normal", "todo", "2026-09-13 18:00", "manual", "", manual),
     ]
     db.add_all(tasks)
 
@@ -719,26 +490,8 @@ def seed_demo(db: Session) -> None:
 
     db.add_all(
         [
-            Robot(
-                id="robot-scout-01",
-                name="巡检机器人 01",
-                robot_type="scout",
-                status="unbound",
-                capability_boundary="机身未接入。不提供实时 GPS，不接受运动/云台控制，不回传现场视频。",
-                last_pose=None,
-                control_enabled=0,
-                data_source=sim,
-            ),
-            Robot(
-                id="robot-spray-01",
-                name="喷雾机器人 01",
-                robot_type="spray",
-                status="unbound",
-                capability_boundary="未绑定喷雾机。系统不会下发喷药或行走指令。",
-                last_pose=None,
-                control_enabled=0,
-                data_source=sim,
-            ),
+            _robot("robot-scout-01", "巡检机器人 01", "scout", "unbound", "机身未接入。不提供实时 GPS，不接受运动/云台控制，不回传现场视频。", None, 0, sim),
+            _robot("robot-spray-01", "喷雾机器人 01", "spray", "unbound", "未绑定喷雾机。系统不会下发喷药或行走指令。", None, 0, sim),
         ]
     )
 
