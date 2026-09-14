@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一级芯界 AI Farm OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css?v=155" />
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div id="topbar">
+    <div class="logo">
+      <span class="mark">芯</span>
+      <div class="logo-text">
+        <strong>芯界一号农场</strong>
+        <em>FARM MANAGEMENT</em>
+      </div>
+    </div>
+    <select class="farm-select" id="farmSelect" title="切换农场" aria-label="切换农场">
+      <option value="f1">芯界一号农场（库尔勒试验场）</option>
+      <option value="f2">芯界二号农场（阿克苏）</option>
+      <option value="f3">芯界三号农场（石河子）</option>
+    </select>
+    <button id="g-search" type="button" title="搜田块 / 待办 / 机具" aria-haspopup="dialog" aria-controls="cmd-panel" aria-expanded="false">
+      <span>搜田块、待办、机具…</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+    <div class="runtime-badge" id="runtimeBadge" role="status" aria-live="polite">
+      <i aria-hidden="true"></i><span>检测数据源</span>
+    </div>
+    <div class="sp"></div>
+    <div class="tb-weather" id="tbWeather" title="天气快照（仿真）" hidden></div>
+    <div class="tb-clock"><span id="tb-date"></span> · <span class="num" id="clock"></span></div>
+    <button class="icon-btn" id="refresh-page" title="手动刷新当前页面" aria-label="手动刷新当前页面" type="button">↻</button>
+    <button class="icon-btn" id="theme-toggle" title="切换浅色/深色主题" aria-label="切换浅色或深色主题" type="button">☾</button>
+    <button class="btn ghost wall-btn" id="wall-toggle" title="态势大屏模式" aria-label="打开态势大屏" data-short="大屏" type="button">态势大屏</button>
+    <button class="icon-btn" id="notif-btn" title="通知中心" aria-label="通知中心" type="button" aria-haspopup="dialog" aria-controls="notif-panel" aria-expanded="false">
+      <span class="ico-bell" aria-hidden="true"></span>
+      <span class="badge-dot" id="notif-badge">0</span>
+    </button>
+    <div class="user-role" title="切换用户角色视角">
+      <div class="avatar" id="roleAvatar">农</div>
+      <div class="user-role-meta">
+        <div class="user-role-name" id="roleLabel">田间管理员</div>
+        <div class="role-tag">农户/场长</div>
+      </div>
+      <select id="roleSelect" aria-label="用户角色">
+        <option value="farm">农户/场长</option>
+        <option value="expert">农技专家</option>
+        <option value="gov">监管人员</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="notif-panel" role="dialog" aria-label="通知中心" aria-hidden="true" tabindex="-1"></div>
+  <div id="cmd-panel" role="dialog" aria-modal="true" aria-label="全局搜索" aria-hidden="true">
+    <div class="cmd-box">
+      <input id="cmd-input" aria-label="搜索田块、待办或机具" placeholder="搜田块、待办、机具…（Ctrl+K）" autocomplete="off" />
+      <div id="cmd-list"></div>
+    </div>
+  </div>
+
+  <dialog id="evidence-dialog" class="evidence-dialog" aria-labelledby="evidence-dialog-title" aria-describedby="evidence-dialog-desc">
+    <form id="evidence-form" novalidate>
+      <div class="evidence-dialog-head">
+        <div>
+          <span class="evidence-kicker" id="evidence-dialog-kicker">EVIDENCE GATE</span>
+          <h2 id="evidence-dialog-title">提交核验信息</h2>
+        </div>
+        <button type="button" class="icon-btn" id="evidence-dialog-x" aria-label="关闭核验对话框">×</button>
+      </div>
+      <p id="evidence-dialog-desc" class="sub"></p>
+      <div id="evidence-fields" class="evidence-fields"></div>
+      <div id="evidence-error" class="evidence-error" role="alert" aria-live="polite"></div>
+      <div class="evidence-dialog-actions">
+        <button type="button" class="btn ghost" id="evidence-dialog-cancel">取消</button>
+        <button type="submit" class="btn" id="evidence-dialog-submit">确认记录</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="layout">
+    <aside id="sidebar">
+      <div class="side-head">
+        <button type="button" class="side-overview" id="sideOverview" aria-label="返回角色首页"></button>
+        <button type="button" class="side-toggle" id="sideToggle" title="收起 / 展开侧栏" aria-label="收起或展开侧栏" aria-expanded="true">
+          <span class="side-toggle-ico" aria-hidden="true">‹</span>
+        </button>
+      </div>
+      <nav id="nav" aria-label="主功能导航"></nav>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div class="page-title" id="pageHead">
+        <h1 id="pageTitle" tabindex="-1">本周农事</h1>
+        <span class="page-path" id="pagePath" hidden></span>
+        <span class="crumb inline" id="crumb" hidden></span>
+        <span class="sub-t" id="pageSub">本周 · 完成 --%</span>
+        <div class="page-env" id="pageEnv" hidden></div>
+      </div>
+      <div id="view"></div>
+    </main>
+  </div>
+
+  <div id="toast-wrap" role="status" aria-live="polite" aria-atomic="false"></div>
+  <div id="wall-root" role="dialog" aria-modal="true" aria-label="态势大屏" aria-hidden="true" tabindex="-1"></div>
+
+  <script src="assets/spec.js?v=155"></script>
+  <script src="assets/equipment-catalog.js?v=155"></script>
+  <script src="assets/engine.js?v=155"></script>
+  <script src="assets/mxsj-agents.js?v=155"></script>
+  <script src="assets/app.js?v=155"></script>
+  <script src="assets/wall.js?v=155"></script>
+</body>
+</html>
