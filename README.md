@@ -1,71 +1,70 @@
 # 一级芯界 AI Farm OS
 
-可运行的农业决策支持与受控作业沙箱。当前仓库内置的是可交互仿真数据和本地规则引擎，不冒充生产遥测，也不会直接控制真实农机、阀泵或无人机。
+智能农场作业操作系统。中文界面，决策优先、地图为中心。本仓库是 **Unified Mainline**：Vite + React + TypeScript 前端，FastAPI 后端，默认 SQLite。
 
-## 权威规范
+PowerShell Demo 只作为产品与交互参考，没有复制其技术栈。
 
-请以 [`docs/FINAL_SPEC.md`](docs/FINAL_SPEC.md) 为产品规范，并以 [`docs/EXPERT_COUNCIL.md`](docs/EXPERT_COUNCIL.md) 的联合专家门禁作为农业、安全与发布约束。
+## 一条命令启动（无需 Docker）
 
-## 启动
-
-双击 `打开系统.html`，或：
-
-```bat
-powershell -ExecutionPolicy Bypass -File start-web.ps1
+```bash
+chmod +x scripts/*.sh
+./scripts/dev.sh
 ```
 
-访问 http://127.0.0.1:8080/。这个入口提供静态前端与可选 AI 问答代理；业务页面默认使用浏览器内的仿真引擎。
+等价：`npm start`。脚本会先拉起 API，等到 `/api/health` 通过后再开前端；退出前端时停 API。
 
-## 运行模式与安全边界
+- 前端：http://127.0.0.1:5173
+- API：http://127.0.0.1:8000/docs
+- 健康检查：http://127.0.0.1:8000/api/health
 
-| 模式 | 数据来源 | 写入/控制含义 |
-|---|---|---|
-| 本地仿真（默认） | 浏览器内固定模拟与规则 | 只改变仿真状态；设备动作均是模拟请求 |
-| 后端仿真 | FastAPI + SQLite 模拟快照 | 业务 API 当前标记为 `partial`；所有写操作默认 `423` 锁定 |
-| 生产接入 | 本仓库未提供 | 必须另行实现身份认证、租户/农场隔离、设备签名、双人复核、现场联锁、真实遥测与审计存储 |
+分终端启动：
 
-若仅为本机沙箱测试而需要开启后端写入，必须同时设置：
-
-```powershell
-$env:AI_FARM_ALLOW_DEMO_WRITES = "1"
-$env:AI_FARM_WRITE_TOKEN = "请使用本机随机测试令牌"
-python -m uvicorn backend.app:app --host 127.0.0.1 --port 8090
+```bash
+./scripts/start-api.sh   # 终端 1
+./scripts/start-web.sh   # 终端 2
 ```
 
-这只解锁“模拟写入”，不是生产授权。不要把测试令牌提交到仓库，也不要把服务暴露到公网。
+默认不设置 `DATABASE_URL` 时使用 `apps/api/data/farm.db`。首次启动若库为空会写入怀柔示范农场种子数据。
 
-## 目录结构（按生产生命周期）
+可选 PostgreSQL：
 
-1. **指挥中心**：农业驾驶舱 · 数字孪生  
-2. **精细农作**：植株精细管控 · 水肥 · 农事  
-3. **全季装备**：播收到仓装备 · 多机联合作业 · 机器人 · 传感网 · 厂家接入  
-4. **收贮加工**：仓储与初加工  
-5. **智能决策**：协同 / 诊断 / 工作台 / Agent / AI  
-6. **数据底座**：数据资产 · 云边端架构  
-
-## 关键能力
-
-- 三角色决策首页：农场作业、专家研判、监管合规
-- 地块地图优先：以明确标注的资料图与屏幕示意坐标展示地块、作业窗口与资源冲突
-- 页面级标准闭环：计划→证据→研判→人工门禁→模拟请求→设备 ACK→独立验收→复盘
-- 单株地上/地下长势 + 全生育期形态  
-- 播种→秋收全季装备运行态势  
-- 机收后仓储控温控湿 + 轧花/烘干/清理初加工  
-- 多机联合作业、传感网、厂家接入  
-- 周计划、专家研判、监管、设备、水肥、机队、收贮、历史与资产 CSV 台账导出
-- 角色化态势大屏，30 秒刷新仿真快照并明确显示数据模式
-
-农业结论采用 fail-closed：缺少采样深度、数据质量码、田间持水量、根层、ETc、天气窗、设备 ACK、作业轨迹等关键证据时，界面返回 `NO_GO`，不自动形成可执行水量、药量或机具指令。
-
-## 验证
-
-安装测试依赖并运行全量门禁：
-
-```powershell
-python -m pip install -r requirements-dev.txt
-.\verify.ps1
+```bash
+export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/farm"
 ```
 
-验证包含 JavaScript 语法、本地引擎安全链路、Python 编译、PowerShell 启动脚本解析、FastAPI 权限/幂等/数据不变性、HTML 语义与静态资产契约。
+## 构建与测试
 
-如浏览器仍显示旧界面，请执行一次强制刷新后再打开。
+```bash
+python3 -m pip install -r apps/api/requirements.txt -r requirements-dev.txt
+npm --prefix apps/web install
+python3 -m compileall apps/api/app
+python3 -m pytest
+npm --prefix apps/web test
+npm run build
+```
+
+或：`npm run check`（compileall + pytest + 前端单测 + 生产构建）。
+
+## 数据诚实性
+
+凡涉及传感、机器人、设备控制的能力都带 `data_source`：
+
+| 值 | 含义 |
+| --- | --- |
+| `REAL` | 真实接入（本演示场暂无） |
+| `SIMULATION` | 仿真回放或顾问假设 |
+| `MANUAL` | 人工台账 / 抄表 |
+
+灌溉建议按仿真墒情阈值与 ET₀×Kc 计算，**采纳只生成任务**，不开阀。系统不会伪造实时传感器、机器人 GPS，也不会让 AI 直接控制机身。机器人指令接口固定返回 409。
+
+示范场情景时钟固定为 `2026-09-13 08:30`，便于建议、逾期与演示可复现。
+
+## 模块
+
+- **P0** 决策看板、数字孪生（墒情/作物/风险/设备/传感器）、资产、作物、水肥、任务
+- **P1** 设备、AI 智能体、诊断、AI 中心
+- **P2** 机器人（stub）、车队、采后
+- **P3** 供应商、协作、架构页
+- **演示辅助** 工作台、本季与历史
+
+详见 [ROADMAP.md](ROADMAP.md) 与 [OPTIMIZATION_LOG.md](OPTIMIZATION_LOG.md)。

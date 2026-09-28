@@ -1,44 +1,35 @@
 from __future__ import annotations
 
-import importlib
+import os
 import sys
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-
-def _fresh_backend(monkeypatch: pytest.MonkeyPatch, db_path: Path, writes: bool):
-    monkeypatch.setenv("AI_FARM_DB_PATH", str(db_path))
-    monkeypatch.setenv("AI_FARM_SIMULATOR", "0")
-    monkeypatch.setenv("AI_FARM_SYNC_DEMO_CONTRACT", "1")
-    monkeypatch.setenv("AI_FARM_ALLOW_DEMO_WRITES", "1" if writes else "0")
-    if writes:
-        monkeypatch.setenv("AI_FARM_WRITE_TOKEN", "test-write-token")
-    else:
-        monkeypatch.delenv("AI_FARM_WRITE_TOKEN", raising=False)
-    for name in ("backend.app", "backend.db"):
-        sys.modules.pop(name, None)
-    return importlib.import_module("backend.app")
+ROOT = Path(__file__).resolve().parents[1]
+API_ROOT = ROOT / "apps" / "api"
+if str(API_ROOT) not in sys.path:
+    sys.path.insert(0, str(API_ROOT))
 
 
-@pytest.fixture
-def locked_client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[TestClient]:
-    module = _fresh_backend(monkeypatch, tmp_path / "locked.db", writes=False)
-    with TestClient(module.app) as client:
-        yield client
-    module.conn.close()
-    for name in ("backend.app", "backend.db"):
-        sys.modules.pop(name, None)
+def _purge_app_modules() -> None:
+    for name in list(sys.modules):
+        if name == "app" or name.startswith("app."):
+            del sys.modules[name]
 
 
-@pytest.fixture
-def writable_backend(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    module = _fresh_backend(monkeypatch, tmp_path / "writable.db", writes=True)
-    with TestClient(module.app) as client:
-        yield client, module
-    module.conn.close()
-    for name in ("backend.app", "backend.db"):
-        sys.modules.pop(name, None)
+@pytest.fixture()
+def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]:
+    db_path = tmp_path / "farm.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("SEED_ON_EMPTY", "true")
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
+    os.environ["SEED_ON_EMPTY"] = "true"
+    _purge_app_modules()
+    from app.main import app
 
+    with TestClient(app) as test_client:
+        yield test_client
+    _purge_app_modules()

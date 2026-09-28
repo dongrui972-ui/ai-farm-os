@@ -1,28 +1,24 @@
-# Python / tooling
-__pycache__/
-*.py[cod]
-.pytest_cache/
 .venv/
 venv/
+__pycache__/
+*.py[cod]
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Secrets & local env
+node_modules/
+dist/
+.vite/
+*.local
+
+apps/api/data/*.db
+apps/api/data/*.db-journal
+
+.DS_Store
 .env
 .env.*
 !.env.example
 
-# Local / temp
-data/*.db
-data/*.db-*
-tmp-*/
-_*.txt
-_*.ps1
-*.xlsx
-Thumbs.db
-Desktop.ini
-.DS_Store
-
-# Editor
 .idea/
 .vscode/
-*.swp
