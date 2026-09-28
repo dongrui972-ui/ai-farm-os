@@ -1,0 +1,14 @@
+{
+  "name": "ai-farm-os",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix apps/web run build",
+    "start": "bash scripts/dev.sh",
+    "test": "python3 -m pytest",
+    "test:web": "npm --prefix apps/web test",
+    "smoke:api": "python3 -m pytest -q",
+    "check": "python3 -m compileall apps/api/app tests apps/api/smoke_routes.py && python3 -m pytest -q && npm --prefix apps/web test && npm run build",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:api": "bash scripts/start-api.sh"
+  }
+}
