@@ -1,5 +1,5 @@
 import type { DataSource } from "../types";
-import { ASSET_STATUS_LABEL, DATA_SOURCE_LABEL, HEALTH_LABEL, RISK_LABEL, TASK_STATUS_LABEL, labelOf } from "../labels";
+import { ASSET_STATUS_LABEL, CIRCUIT_STATUS_LABEL, DATA_SOURCE_LABEL, HEALTH_LABEL, RISK_LABEL, ROBOT_STATUS_LABEL, TASK_STATUS_LABEL, labelOf } from "../labels";
 
 export function DataSourceBadge({ source }: { source: DataSource }) {
   return <span className={`badge ${source}`}>{DATA_SOURCE_LABEL[source] ?? source}</span>;
@@ -10,7 +10,10 @@ export function RiskBadge({ level }: { level: string }) {
 }
 
 export function StatusBadge({ children }: { children: string }) {
-  const label = labelOf({ ...TASK_STATUS_LABEL, ...HEALTH_LABEL, ...ASSET_STATUS_LABEL }, children);
+  const label = labelOf(
+    { ...TASK_STATUS_LABEL, ...HEALTH_LABEL, ...ASSET_STATUS_LABEL, ...CIRCUIT_STATUS_LABEL, ...ROBOT_STATUS_LABEL },
+    children,
+  );
   return <span className="badge status">{label}</span>;
 }
 

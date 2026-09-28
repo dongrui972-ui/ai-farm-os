@@ -3,7 +3,7 @@ import { api } from "../api";
 import { DataPageState } from "../components/PageState";
 import { DataSourceBadge, EmptyState, PageHeader, StatusBadge } from "../components/Ui";
 import { useLoad } from "../hooks";
-import { MOISTURE_STATUS_LABEL, labelOf } from "../labels";
+import { METHOD_LABEL, MOISTURE_STATUS_LABEL, labelOf } from "../labels";
 
 export function IrrigationPage() {
   const { data, error, reload } = useLoad(() => api.irrigation());
@@ -44,11 +44,9 @@ export function IrrigationPage() {
                     <article className="card irrig-card" key={item.id}>
                       <div className="row-actions" style={{ justifyContent: "space-between" }}>
                         <div>
-                          <h3>
-                            {item.zone_code} {item.name}
-                          </h3>
+                          <h3>{item.name}</h3>
                           <p className="muted">
-                            {item.valve_code} · {item.method} <StatusBadge>{item.status}</StatusBadge>
+                            {item.valve_code} · {labelOf(METHOD_LABEL, item.method)} <StatusBadge>{item.status}</StatusBadge>
                           </p>
                         </div>
                         <DataSourceBadge source={item.data_source} />

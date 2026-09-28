@@ -3,6 +3,7 @@ import { api } from "../api";
 import { DataPageState } from "../components/PageState";
 import { DataSourceBadge, PageHeader } from "../components/Ui";
 import { useLoad } from "../hooks";
+import { ROBOT_STATUS_LABEL, labelOf } from "../labels";
 
 export function RobotsPage() {
   const { data, error, reload } = useLoad(() => api.robots());
@@ -24,7 +25,7 @@ export function RobotsPage() {
               <article className="card" key={robot.id}>
                 <h3>{robot.name}</h3>
                 <p className="muted">
-                  {robot.robot_type} · {robot.status}
+                  {labelOf(ROBOT_STATUS_LABEL, robot.robot_type)} · {labelOf(ROBOT_STATUS_LABEL, robot.status)}
                 </p>
                 <p>{robot.capability_boundary}</p>
                 <p>位姿：{robot.last_pose ?? "无（未接入）"}</p>

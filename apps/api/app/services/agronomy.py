@@ -94,7 +94,7 @@ CROPS: dict[str, CropSpec] = {
                 ),
                 watch=("落花", "脐腐", "灰霉"),
                 evening_ok=False,
-                window="今日 16:00 前结束，避免棚内过夜高湿",
+                window="昼湿夜略干，避免傍晚灌",
             ),
             "膨果期": StageSpec(
                 kc=1.15,
@@ -329,8 +329,10 @@ def advise_plot(
     window = stage.window
     if action == "hold_for_harvest":
         window = "采收前 24h 停水"
-    elif action == "irrigate" and zone_code == "A3":
-        window = "今日 16:00 前补灌，15:30 前结束"
+    elif action == "irrigate":
+        window = "今日 16:00 前补灌，15:30 前结束，避免棚内过夜高湿"
+    elif action == "shorten":
+        window = "晨灌并缩短时长，灌后加强通风"
 
     summary = ACTION_LABELS[action]
     if recommended_mm > 0:

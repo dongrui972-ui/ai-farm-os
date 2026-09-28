@@ -50,6 +50,26 @@ export const ASSET_STATUS_LABEL: Record<string, string> = {
   retired: "停用",
 };
 
+export const CIRCUIT_STATUS_LABEL: Record<string, string> = {
+  idle: "空闲",
+  needs_action: "待拍板",
+  accepted: "已采纳",
+};
+
+export const METHOD_LABEL: Record<string, string> = {
+  drip: "滴灌",
+  micro_spray: "微喷",
+  sprinkler: "喷灌",
+  furrow: "沟灌",
+};
+
+export const ROBOT_STATUS_LABEL: Record<string, string> = {
+  unbound: "未接入",
+  ready: "就绪",
+  scout: "巡检",
+  spray: "喷雾",
+};
+
 export const MOISTURE_STATUS_LABEL: Record<string, string> = {
   dry: "偏干",
   ok: "适宜",
