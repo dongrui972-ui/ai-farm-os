@@ -4,9 +4,9 @@ import { PageHeader } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function ArchitecturePage() {
-  const { data, error } = useLoad(() => api.architecture());
+  const { data, error, reload } = useLoad(() => api.architecture());
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(detail) => (
         <>
           <PageHeader title="系统架构" subtitle="Unified Mainline 的真实边界。PowerShell Demo 只作产品交互参考，未复制其技术栈。" />
@@ -18,6 +18,7 @@ export function ArchitecturePage() {
                 <li>Web：{detail.stack.web}</li>
                 <li>API：{detail.stack.api}</li>
                 <li>数据：{detail.stack.db}</li>
+                {detail.demo_clock ? <li>示范场情景时钟：{detail.demo_clock}</li> : null}
               </ul>
               {Object.entries(detail.modules).map(([key, mods]) => (
                 <p key={key}>

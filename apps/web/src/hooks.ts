@@ -7,6 +7,7 @@ export function useLoad<T>(loader: () => Promise<T>, deps: unknown[] = []) {
 
   useEffect(() => {
     let cancelled = false;
+    setError("");
     loader()
       .then((value) => {
         if (!cancelled) setData(value);

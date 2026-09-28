@@ -4,9 +4,9 @@ import { DataSourceBadge, PageHeader, StatusBadge } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function FleetPage() {
-  const { data, error } = useLoad(() => api.fleet());
+  const { data, error, reload } = useLoad(() => api.fleet());
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="车队" subtitle="位置来自出车单或人工登记，不是车辆 GPS。" />

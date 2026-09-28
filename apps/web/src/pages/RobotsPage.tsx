@@ -5,10 +5,10 @@ import { DataSourceBadge, PageHeader } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function RobotsPage() {
-  const { data, error } = useLoad(() => api.robots());
+  const { data, error, reload } = useLoad(() => api.robots());
   const [reject, setReject] = useState("");
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader

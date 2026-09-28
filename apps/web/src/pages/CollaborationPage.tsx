@@ -9,7 +9,7 @@ export function CollaborationPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="协作" subtitle="场长、农技员与采收组的留言。不是即时通讯，也不是设备指令通道。" />

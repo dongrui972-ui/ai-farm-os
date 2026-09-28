@@ -4,9 +4,9 @@ import { DataSourceBadge, PageHeader, StatusBadge } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function SeasonsPage() {
-  const { data, error } = useLoad(() => api.seasons());
+  const { data, error, reload } = useLoad(() => api.seasons());
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="本季与历史" subtitle="茬口台账。当前演示锚定 2026 秋茬。" />

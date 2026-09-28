@@ -34,6 +34,51 @@ export type Meta = {
   season: Season | null;
   data_policy: { allowed_sources: DataSource[]; rule: string };
   layers: TwinLayerKey[];
+  demo_clock?: string;
+};
+
+export type SimulatedWeather = {
+  observed_at: string;
+  location: string;
+  et0_mm: number;
+  tmax_c: number;
+  tmin_c: number;
+  rh_pct: number;
+  rain_mm: number;
+  sky: string;
+  data_source: DataSource;
+  disclaimer: string;
+  forecast: { date: string; et0_mm: number; rain_mm: number; tmax_c: number; sky: string }[];
+};
+
+export type AgronomyAdvice = {
+  data_source: DataSource;
+  applicable: boolean;
+  action: string;
+  action_label: string;
+  climate_action?: string;
+  climate_label?: string;
+  recommended_mm: number;
+  volume_m3: number;
+  moisture_pct?: number | null;
+  threshold_pct?: number;
+  fc_pct?: number;
+  pwp_pct?: number;
+  mad?: number;
+  kc?: number;
+  et0_mm?: number;
+  etc_mm?: number;
+  ks?: number;
+  moisture_status?: string;
+  window_hint?: string;
+  summary?: string;
+  reasons?: string[];
+  care?: string[];
+  watch?: string[];
+  control_enabled?: boolean;
+  growth_stage?: string | null;
+  crop_name?: string | null;
+  model_note?: string;
 };
 
 export type Decision = {
@@ -42,6 +87,8 @@ export type Decision = {
   urgency: DecisionUrgency;
   title: string;
   detail: string;
+  why?: string[];
+  window?: string | null;
   zone_id: string | null;
   href: string;
   action_label: string;
@@ -52,6 +99,9 @@ export type Dashboard = {
   farm: Farm | null;
   season: Season | null;
   generated_at: string;
+  demo_clock_note?: string;
+  weather?: SimulatedWeather;
+  agronomy_counts?: { irrigate: number; harvest_hold: number; dehumidify: number };
   decisions: Decision[];
   kpis: { key: string; label: string; value: number }[];
   risk_zones: {
@@ -61,6 +111,9 @@ export type Dashboard = {
     risk_level: RiskLevel;
     risk_note: string;
     moisture_pct: number | null;
+    threshold_pct?: number;
+    moisture_status?: string;
+    action_label?: string;
     data_source: DataSource;
   }[];
   open_tasks: TaskItem[];
@@ -74,11 +127,20 @@ export type TwinZone = {
   zone_type: ZoneType;
   polygon: { x: number; y: number }[];
   moisture_pct: number | null;
+  threshold_pct?: number | null;
+  moisture_status?: string;
+  action?: string;
+  action_label?: string;
   risk_level: RiskLevel;
   risk_note: string;
   crop_name: string | null;
   variety: string | null;
   growth_stage: string | null;
+  health_status?: string | null;
+  kc?: number | null;
+  etc_mm?: number | null;
+  recommended_mm?: number | null;
+  agronomy?: AgronomyAdvice;
   data_source: DataSource;
 };
 
@@ -99,6 +161,7 @@ export type TwinDevice = {
 export type TwinPayload = {
   layers: TwinLayerKey[];
   available_layers: { id: TwinLayerKey; label: string; data_source: DataSource }[];
+  weather?: SimulatedWeather;
   zones: TwinZone[];
   devices?: TwinDevice[];
   disclaimer: string;
@@ -132,6 +195,7 @@ export type PlantItem = {
   zone_code?: string | null;
   moisture_pct?: number | null;
   risk_level?: RiskLevel | null;
+  agronomy?: AgronomyAdvice;
 };
 
 export type IrrigationItem = {
@@ -152,6 +216,8 @@ export type IrrigationItem = {
   moisture_pct?: number | null;
   control_enabled?: boolean;
   control_note?: string;
+  agronomy?: AgronomyAdvice;
+  accept_allowed?: boolean;
 };
 
 export type TaskItem = {
@@ -186,6 +252,15 @@ export type DeviceItem = {
   live?: boolean;
   status_label?: string;
   readings?: SensorReading[];
+};
+
+export type TwinZoneDetail = {
+  zone: TwinZone;
+  plant: PlantItem | null;
+  irrigation: IrrigationItem | null;
+  agronomy: AgronomyAdvice;
+  weather: SimulatedWeather;
+  devices: DeviceItem[];
 };
 
 export type SensorReading = {
@@ -313,6 +388,7 @@ export type Architecture = {
   modules: Record<string, string[]>;
   boundaries: string[];
   data_sources: DataSource[];
+  demo_clock?: string;
   generated_at: string;
 };
 

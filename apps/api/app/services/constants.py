@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.models import DataSource
+from app.services.clock import DEMO_NOW_LABEL
 
 TWIN_LAYER_KEYS: tuple[str, ...] = ("moisture", "crop", "risk", "device", "sensors")
 
@@ -20,8 +21,11 @@ DATA_SOURCE_LEGEND = [
 
 HONESTY_BOUNDARIES = [
     "没有 REAL 传感器接入，墒情/气象曲线为 SIMULATION。",
+    "灌溉顾问用仿真 ET₀×Kc 与墒情阈值，只生成任务，不开阀。",
     "机器人模块为 stub：无位姿、无遥控、无视频。",
     "AI 智能体只产出建议，controls_hardware 恒为 false。",
     "车队位置来自出车单 MANUAL，不是 GPS 轨迹。",
     "阀门/泵不可远程闭环。",
 ]
+
+DEMO_CLOCK_NOTE = f"示范场情景时钟固定为 {DEMO_NOW_LABEL}，便于建议与逾期判定可复现。"

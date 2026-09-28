@@ -10,7 +10,7 @@ export function AgentsPage() {
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [name, setName] = useState("");
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader

@@ -23,6 +23,7 @@ import type {
   TaskItem,
   TaskPatchInput,
   TwinPayload,
+  TwinZoneDetail,
   VendorItem,
   Workbench,
 } from "./types";
@@ -77,4 +78,5 @@ export const api = {
   architecture: () => client.request<Architecture>("/architecture"),
   workbench: () => client.request<Workbench>("/workbench"),
   seasons: () => client.request<Season[]>("/seasons"),
+  twinZone: (id: string) => client.request<TwinZoneDetail>(`/twin/zones/${id}`),
 };

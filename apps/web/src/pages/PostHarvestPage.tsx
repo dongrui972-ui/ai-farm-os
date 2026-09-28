@@ -4,9 +4,9 @@ import { DataSourceBadge, PageHeader } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function PostHarvestPage() {
-  const { data, error } = useLoad(() => api.postharvest());
+  const { data, error, reload } = useLoad(() => api.postharvest());
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="采后" subtitle="预冷与分拣批次台账。库温不冒充在线冷链。" />

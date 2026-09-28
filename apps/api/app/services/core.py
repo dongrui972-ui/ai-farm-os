@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,9 @@ from app.models import (
     Zone,
 )
 from app.serialize import parse_polygon, row, zone_map
-from app.services.constants import DATA_SOURCE_LEGEND, HONESTY_BOUNDARIES, TWIN_AVAILABLE_LAYERS, TWIN_LAYER_KEYS
+from app.services.agronomy import advise_zone, farm_snapshot, weather_payload
+from app.services.clock import DEMO_FOCUS_DATE, DEMO_NOW_LABEL
+from app.services.constants import DATA_SOURCE_LEGEND, DEMO_CLOCK_NOTE, HONESTY_BOUNDARIES, TWIN_AVAILABLE_LAYERS, TWIN_LAYER_KEYS
 
 
 def health() -> dict[str, str]:
@@ -38,6 +41,7 @@ def meta(db: Session) -> dict:
             "rule": "传感、机器人与设备控制必须标注 REAL / SIMULATION / MANUAL。禁止伪造实时机身、GPS 或闭环控制。",
         },
         "layers": list(TWIN_LAYER_KEYS),
+        "demo_clock": DEMO_NOW_LABEL,
     }
 
 
@@ -53,29 +57,86 @@ def dashboard(db: Session) -> dict:
     zmap = {z.id: z for z in zones}
 
     open_tasks = [task for task in tasks if task.status in ("todo", "in_progress")]
-    overdue_tasks = [task for task in open_tasks if task.due_at and task.due_at < "2026-09-13 09:00"]
+    overdue_tasks = [task for task in open_tasks if task.due_at and task.due_at < DEMO_NOW_LABEL]
     high_risk_zones = [zone for zone in zones if zone.risk_level == "high"]
     harvestable_plants = [plant for plant in plants if plant.growth_stage == "采收期"]
-    irrigation_actions = [circuit for circuit in circuits if circuit.status == "needs_action"]
-    simulation_devices = [device for device in devices if device.data_source == DataSource.SIMULATION.value]
     unbound_devices = [device for device in devices if device.status == "unbound"]
+    snapshot = farm_snapshot(zones, plants, circuits)
+    advice_by_zone = {item["zone_id"]: item for item in snapshot["zones"]}
 
+    urgency_rank = {"urgent": 0, "high": 1, "normal": 2}
     decisions: list[dict] = []
-    for circuit in irrigation_actions:
-        zone = zmap.get(circuit.zone_id)
-        decisions.append(
-            {
-                "id": f"dec-{circuit.id}",
-                "kind": "irrigation",
-                "urgency": "urgent",
-                "title": f"{zone.code if zone else ''} 需要补灌决策",
-                "detail": circuit.recommendation,
-                "zone_id": circuit.zone_id,
-                "href": "/irrigation",
-                "action_label": "去水肥回路",
-                "data_source": circuit.data_source,
-            }
-        )
+
+    for item in snapshot["zones"]:
+        zone = zmap.get(item["zone_id"])
+        if not item.get("applicable"):
+            continue
+        action = item.get("action")
+        climate = item.get("climate_action")
+        if action == "irrigate":
+            decisions.append(
+                {
+                    "id": f"dec-irr-{item['zone_id']}",
+                    "kind": "irrigation",
+                    "urgency": "urgent",
+                    "title": f"{item['zone_code']} 墒情跌破阈值，需补灌拍板",
+                    "detail": item["summary"],
+                    "why": item["reasons"][:3],
+                    "window": item.get("window_hint"),
+                    "zone_id": item["zone_id"],
+                    "href": "/irrigation",
+                    "action_label": "去水肥回路拍板",
+                    "data_source": item["data_source"],
+                }
+            )
+        elif action == "shorten":
+            decisions.append(
+                {
+                    "id": f"dec-short-{item['zone_id']}",
+                    "kind": "irrigation",
+                    "urgency": "high",
+                    "title": f"{item['zone_code']} 建议缩短本次灌溉",
+                    "detail": item["summary"],
+                    "why": item["reasons"][:3],
+                    "window": item.get("window_hint"),
+                    "zone_id": item["zone_id"],
+                    "href": "/irrigation",
+                    "action_label": "看水肥建议",
+                    "data_source": item["data_source"],
+                }
+            )
+        elif action == "hold_for_harvest" and zone and zone.code == "B2":
+            decisions.append(
+                {
+                    "id": f"dec-hold-{item['zone_id']}",
+                    "kind": "harvest",
+                    "urgency": "high",
+                    "title": f"{item['zone_code']} 采收前停水并安排清晨采收",
+                    "detail": item["summary"],
+                    "why": item["reasons"][:3],
+                    "window": item.get("window_hint"),
+                    "zone_id": item["zone_id"],
+                    "href": "/plants",
+                    "action_label": "看作物与采收窗口",
+                    "data_source": item["data_source"],
+                }
+            )
+        if climate == "dehumidify":
+            decisions.append(
+                {
+                    "id": f"dec-rh-{item['zone_id']}",
+                    "kind": "climate",
+                    "urgency": "high",
+                    "title": f"{item['zone_code']} 棚湿偏高，先通风再谈水",
+                    "detail": item.get("climate_label"),
+                    "why": [reason for reason in item["reasons"] if "湿" in reason][:2] or item["reasons"][:2],
+                    "window": "午前通风",
+                    "zone_id": item["zone_id"],
+                    "href": "/twin",
+                    "action_label": "看孪生风险层",
+                    "data_source": item["data_source"],
+                }
+            )
 
     for diagnosis in diagnoses:
         if diagnosis.severity != "high":
@@ -87,6 +148,8 @@ def dashboard(db: Session) -> dict:
                 "urgency": "high",
                 "title": diagnosis.title,
                 "detail": diagnosis.conclusion,
+                "why": [diagnosis.symptom, "仿真鉴别不能替代镜检，系统不喷药。"],
+                "window": None,
                 "zone_id": diagnosis.zone_id,
                 "href": "/diagnosis",
                 "action_label": "看诊断依据",
@@ -96,13 +159,17 @@ def dashboard(db: Session) -> dict:
 
     for plant in harvestable_plants:
         zone = zmap.get(plant.zone_id)
+        if zone and zone.code == "B2":
+            continue
         decisions.append(
             {
                 "id": f"dec-{plant.id}",
                 "kind": "harvest",
-                "urgency": "high" if zone and zone.code == "B2" else "normal",
+                "urgency": "normal",
                 "title": f"{zone.code if zone else ''} {plant.crop_name}进入采收窗口",
                 "detail": plant.notes or "按订单与天气安排采收。",
+                "why": ["生育期为采收期，来自人工台账。"],
+                "window": plant.expected_harvest,
                 "zone_id": plant.zone_id,
                 "href": "/plants",
                 "action_label": "看作物台账",
@@ -118,6 +185,8 @@ def dashboard(db: Session) -> dict:
                 "urgency": "high",
                 "title": f"逾期任务：{task.title}",
                 "detail": task.notes or task.due_at,
+                "why": [f"截止 {task.due_at}，情景时钟 {DEMO_NOW_LABEL}。"],
+                "window": task.due_at,
                 "zone_id": task.zone_id,
                 "href": "/tasks",
                 "action_label": "打开任务",
@@ -125,17 +194,29 @@ def dashboard(db: Session) -> dict:
             }
         )
 
+    decisions.sort(key=lambda item: urgency_rank.get(item["urgency"], 9))
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for item in decisions:
+        if item["id"] in seen:
+            continue
+        seen.add(item["id"])
+        unique.append(item)
+
     return {
         "farm": row(farm) if farm else None,
         "season": row(season) if season else None,
-        "generated_at": "2026-09-13 08:30",
-        "decisions": decisions[:6],
+        "generated_at": DEMO_NOW_LABEL,
+        "demo_clock_note": DEMO_CLOCK_NOTE,
+        "weather": weather_payload(),
+        "agronomy_counts": snapshot["counts"],
+        "decisions": unique[:8],
         "kpis": [
             {"key": "zones", "label": "在田生产分区", "value": len([z for z in zones if z.zone_type in ("greenhouse", "open_field")])},
             {"key": "open_tasks", "label": "未关闭任务", "value": len(open_tasks)},
             {"key": "overdue", "label": "逾期任务", "value": len(overdue_tasks)},
+            {"key": "irrigate", "label": "待补灌分区", "value": snapshot["counts"]["irrigate"]},
             {"key": "high_risk", "label": "高风险分区", "value": len(high_risk_zones)},
-            {"key": "sim_devices", "label": "仿真传感点", "value": len(simulation_devices)},
             {"key": "unbound", "label": "未接入设备", "value": len(unbound_devices)},
         ],
         "risk_zones": [
@@ -146,6 +227,9 @@ def dashboard(db: Session) -> dict:
                 "risk_level": zone.risk_level,
                 "risk_note": zone.risk_note,
                 "moisture_pct": zone.moisture_pct,
+                "threshold_pct": advice_by_zone.get(zone.id, {}).get("threshold_pct"),
+                "moisture_status": advice_by_zone.get(zone.id, {}).get("moisture_status"),
+                "action_label": advice_by_zone.get(zone.id, {}).get("action_label"),
                 "data_source": zone.data_source,
             }
             for zone in zones
@@ -166,9 +250,13 @@ def twin(db: Session, layers: str = "moisture,crop,risk,device,sensors") -> dict
     devices = db.scalars(select(Device)).all()
     plant_by_zone = {plant.zone_id: plant for plant in plants}
 
+    circuits = db.scalars(select(IrrigationCircuit)).all()
+    circuit_by_zone = {item.zone_id: item for item in circuits}
+
     zone_features: list[dict] = []
     for zone in zones:
         plant = plant_by_zone.get(zone.id)
+        advice = advise_zone(zone, plant, circuit_by_zone.get(zone.id))
         zone_features.append(
             {
                 "id": zone.id,
@@ -177,11 +265,20 @@ def twin(db: Session, layers: str = "moisture,crop,risk,device,sensors") -> dict
                 "zone_type": zone.zone_type,
                 "polygon": parse_polygon(zone.polygon),
                 "moisture_pct": zone.moisture_pct,
+                "threshold_pct": advice.get("threshold_pct"),
+                "moisture_status": advice.get("moisture_status"),
+                "action": advice.get("action"),
+                "action_label": advice.get("action_label"),
                 "risk_level": zone.risk_level,
                 "risk_note": zone.risk_note,
                 "crop_name": plant.crop_name if plant else None,
                 "variety": plant.variety if plant else None,
                 "growth_stage": plant.growth_stage if plant else None,
+                "health_status": plant.health_status if plant else None,
+                "kc": advice.get("kc"),
+                "etc_mm": advice.get("etc_mm"),
+                "recommended_mm": advice.get("recommended_mm"),
+                "agronomy": advice,
                 "data_source": zone.data_source,
             }
         )
@@ -189,8 +286,9 @@ def twin(db: Session, layers: str = "moisture,crop,risk,device,sensors") -> dict
     payload: dict = {
         "layers": requested_layers,
         "available_layers": TWIN_AVAILABLE_LAYERS,
+        "weather": weather_payload(),
         "zones": zone_features,
-        "disclaimer": "地图坐标为场内示意网格，不是测绘成果。传感值为仿真回放或人工抄表。",
+        "disclaimer": "地图坐标为场内示意网格，不是测绘成果。墒情与 ET 为仿真回放，不是直播机身。",
     }
     if "device" in requested_layers or "sensors" in requested_layers:
         payload["devices"] = [
@@ -216,15 +314,18 @@ def twin(db: Session, layers: str = "moisture,crop,risk,device,sensors") -> dict
 def twin_zone(db: Session, zone_id: str) -> dict:
     zone = db.get(Zone, zone_id)
     if not zone:
-        return {"error": "zone_not_found"}
+        raise HTTPException(status_code=404, detail="zone_not_found")
     plant = db.scalar(select(Plant).where(Plant.zone_id == zone_id))
     devices = db.scalars(select(Device).where(Device.zone_id == zone_id)).all()
     circuit = db.scalar(select(IrrigationCircuit).where(IrrigationCircuit.zone_id == zone_id))
+    advice = advise_zone(zone, plant, circuit)
     return {
         "zone": {**row(zone), "polygon": parse_polygon(zone.polygon)},
         "plant": row(plant) if plant else None,
-        "irrigation": row(circuit) if circuit else None,
-        "devices": [row(device) for device in devices],
+        "irrigation": row(circuit, {"control_enabled": False}) if circuit else None,
+        "agronomy": advice,
+        "weather": weather_payload(),
+        "devices": [row(device, {"live": False}) for device in devices],
     }
 
 
@@ -235,7 +336,7 @@ def workbench(db: Session) -> dict:
     notes = db.scalars(select(CollaborationNote)).all()
     return {
         "title": "今日工作台",
-        "focus_date": "2026-09-13",
+        "focus_date": DEMO_FOCUS_DATE,
         "blocks": [
             {
                 "id": "water",
@@ -278,5 +379,6 @@ def architecture(db: Session) -> dict:
         },
         "boundaries": HONESTY_BOUNDARIES,
         "data_sources": [source.value for source in DataSource],
+        "demo_clock": DEMO_NOW_LABEL,
         "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
     }

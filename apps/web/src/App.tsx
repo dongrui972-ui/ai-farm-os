@@ -1,4 +1,5 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { useState } from "react";
 import { useLoad } from "./hooks";
 import { api } from "./api";
 import { APP_NAV_GROUPS, APP_ROUTES } from "./appRoutes";
@@ -6,14 +7,15 @@ import { DataSourceBadge } from "./components/Ui";
 
 export default function App() {
   const { data: meta } = useLoad(() => api.meta());
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${navOpen ? " nav-open" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <small>YIJI XINJIE</small>
           <strong>一级芯界</strong>
-          <div className="muted" style={{ color: "#9bb5aa", marginTop: 4 }}>
+          <div className="muted" style={{ color: "#cfe0d6", marginTop: 4 }}>
             AI Farm OS
           </div>
         </div>
@@ -21,7 +23,12 @@ export default function App() {
           <nav key={group.title} className="nav-group">
             <h4>{group.title}</h4>
             {group.items.map((item) => (
-              <NavLink key={item.path} to={item.path} className={({ isActive }) => (isActive ? "active" : "")}>
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setNavOpen(false)}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
                 {item.label}
                 {"stub" in item && item.stub ? <span className="stub">STUB</span> : null}
               </NavLink>
@@ -31,6 +38,9 @@ export default function App() {
       </aside>
       <div className="main">
         <div className="topbar">
+          <button className="nav-toggle btn ghost" onClick={() => setNavOpen((open) => !open)} aria-expanded={navOpen}>
+            {navOpen ? "收起菜单" : "打开菜单"}
+          </button>
           <div>
             <strong>{meta?.farm?.name ?? "一级芯界示范农场"}</strong>
             <div className="farm-meta">

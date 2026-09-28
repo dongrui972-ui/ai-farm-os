@@ -6,10 +6,10 @@ import { useLoad } from "../hooks";
 import type { DeviceItem } from "../types";
 
 export function DevicesPage() {
-  const { data, error } = useLoad(() => api.devices());
+  const { data, error, reload } = useLoad(() => api.devices());
   const [detail, setDetail] = useState<DeviceItem | null>(null);
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader

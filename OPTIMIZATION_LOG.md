@@ -61,3 +61,36 @@
   - `/api/robots/{id}/command` 必须 409（拒绝伪控制）
   - `/api/irrigation/{id}/accept-recommendation` 仅创建任务，不下发阀控
   - 关键对象 `data_source` 仅允许 `REAL|SIMULATION|MANUAL`
+
+## 2026-09 农艺深度（本轮）
+
+### 为什么做
+
+P0 页面在重构后结构干净，但决策仍是静态种子文案：看板截断 6 条、灌溉建议不解释「为何 12mm」、作物页只有生育期字符串。要让示范场像作业 OS，必须把墒情、ET 和生育期连成可复核的建议，同时继续拒绝伪实时控制。
+
+### 农艺模型（全部 SIMULATION）
+
+- 新增 `services/agronomy.py`：FAO-56 风格管理层水量平衡。
+  - ET₀ 取怀柔 9 月中旬情景表（3.6 mm），温室乘 0.78；**不是气象站**。
+  - 作物×生育期给出 Kc 与 MAD，灌水阈值 = 田间持水量 − RAW。
+  - 跌破阈值时给滴灌/喷灌单次脉冲（滴灌上限 12mm，湿润比 0.25 折算 m³），不一次灌到田间持水量。
+  - 生菜采收期强制停水；黄瓜棚湿风险「缩短 + 通风」。
+- `/api/dashboard`、`/api/irrigation`、`/api/plants`、`/api/twin`、`/api/agronomy` 都挂同一套建议。
+- `POST /irrigation/{id}/accept-recommendation` 仍只写任务；响应带 `agronomy.control_enabled = false`。
+- 示范场情景时钟冻结 `2026-09-13 08:30`，逾期判定不再写死另一时间。
+
+### 测试与 DX
+
+- `tests/` pytest：路由冒烟、农艺单测、机器人 409、灌溉采纳不控阀、种子无 REAL。
+- `apps/api/smoke_routes.py` 改为转调 pytest，保持旧命令可用。
+- 前端 Vitest 覆盖中文标签、路由表、墒情着色。
+- `./scripts/dev.sh` 等待 `/api/health` 后开 Vite。
+
+### UX
+
+- 决策卡展示依据列表与作业窗口。
+- 灌溉/作物改为卡片，能看阈值、Kc、ETc。
+- 孪生侧栏解释该层含义 + 分区农艺。
+- 任务筛选、中文状态、空态、错误重试。
+- 提高对比度与按钮最小高度，窄屏用「打开菜单」。
+

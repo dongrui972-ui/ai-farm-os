@@ -4,9 +4,9 @@ import { DataSourceBadge, PageHeader } from "../components/Ui";
 import { useLoad } from "../hooks";
 
 export function VendorsPage() {
-  const { data, error } = useLoad(() => api.vendors());
+  const { data, error, reload } = useLoad(() => api.vendors());
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="供应商" subtitle="种子、肥料、农膜与包装的往来台账。" />

@@ -9,7 +9,7 @@ export function DiagnosisPage() {
   const [title, setTitle] = useState("");
   const [symptom, setSymptom] = useState("");
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader

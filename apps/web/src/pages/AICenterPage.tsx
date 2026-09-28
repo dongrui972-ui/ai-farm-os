@@ -8,7 +8,7 @@ export function AICenterPage() {
   const { data, error, reload } = useLoad(() => api.jobs());
   const [title, setTitle] = useState("");
   return (
-    <DataPageState data={data} error={error}>
+    <DataPageState data={data} error={error} onRetry={reload}>
       {(rows) => (
         <>
           <PageHeader title="AI 中心" subtitle="纪要、风险扫描与计划任务。入队不会触发设备动作。" />

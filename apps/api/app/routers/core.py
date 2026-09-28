@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.services import agronomy as agronomy_service
 from app.services import core as core_service
 
 router = APIRouter()
@@ -47,3 +48,8 @@ def seasons(db: Session = Depends(get_db)) -> list[dict]:
 @router.get("/architecture")
 def architecture(db: Session = Depends(get_db)) -> dict:
     return core_service.architecture(db)
+
+
+@router.get("/agronomy")
+def agronomy(db: Session = Depends(get_db)) -> dict:
+    return agronomy_service.farm_snapshot_from_db(db)
